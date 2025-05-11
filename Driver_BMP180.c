@@ -1,4 +1,4 @@
-#include <linux/module.h>
+ #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/i2c.h>
@@ -12,7 +12,7 @@
 #define CLASS_NAME "bmp180_class"
 #define DEVICE_NAME "bmp180"
 
-// Bien Đọc hệ số hiệu chuẩn
+// Bien doc he so hieu chuan
  struct bmp180_calibration_data {
     int16_t AC1, AC2, AC3;
     uint16_t AC4, AC5, AC6;
@@ -32,7 +32,7 @@ static struct class* bmp180_class = NULL;
 static struct device* bmp180_device = NULL;
 static int major_number;
 
-// Kiểm tra ID cảm biến 
+// Kiem tra ID cam bien 
 static int bmp180_init_sensor(struct i2c_client *client) {
     uint8_t reg = 0xD0;  
     uint8_t id;
@@ -63,15 +63,15 @@ int bmp180_read_calibration_data(struct i2c_client *client) {
     uint8_t buf[22];
     int ret;
 
-    // Đọc 22 byte từ các thanh ghi hiệu chuẩn (0xAA đến 0xBF)
-    // Địa chỉ thanh ghi bắt đầu laf 0xAA
+    // Doc 22 byte tu cac thanh ghi hieu chuan (0xAA đến 0xBF)
+    // Dia chi thanh ghi bat dau la 0xAA
     ret = i2c_smbus_read_i2c_block_data(client, 0xAA, 22, buf);
     if (ret != 22) {
         printk(KERN_ERR "Failed to read calibration data\n");
         return -EIO;
     }
 
-    // Lưu các hệ số vào cấu trúc calib_data
+    // Luu cac he so vao cau truc calib_data
     calib_data.AC1 = (int16_t)((buf[0] << 8) | buf[1]);
     calib_data.AC2 = (int16_t)((buf[2] << 8) | buf[3]);
     calib_data.AC3 = (int16_t)((buf[4] << 8) | buf[5]);
@@ -89,30 +89,30 @@ int bmp180_read_calibration_data(struct i2c_client *client) {
     return 0;  
 }
 
-// Đọc nhiệt độ thô
+// Doc nhiet do tho
 static int bmp180_read_raw_temperature(struct i2c_client *client) {
     uint8_t reg;
     uint8_t buf[2];
     int16_t raw_temp;
 
-    // Gửi lệnh bắt đầu đo nhiệt độ (ghi 0x2E vào thanh ghi 0xF4)
+    // Gui lenh bat dau do nhiet do (ghi 0x2E vao thanh ghi 0xF4)
     uint8_t cmd[2] = {0xF4, 0x2E};
     if (i2c_master_send(client, cmd, 2) < 0) {
         printk(KERN_ERR "Failed to write temperature command\n");
         return -EIO;
     }
 
-    // Chờ ít nhất 4.5ms (BMP180 cần thời gian đo)
+    // Cho it nhat 4.5ms (BMP180 can thoi gian do)
     msleep(5);
 
-    // Gửi địa chỉ thanh ghi bắt đầu đọc dữ liệu (0xF6)
+    // Gui dia chi thanh ghi bat dau doc du lieu (0xF6)
     reg = 0xF6;
     if (i2c_master_send(client, &reg, 1) < 0) {
         printk(KERN_ERR "Failed to write register address 0xF6\n");
         return -EIO;
     }
 
-    // Đọc 2 byte dữ liệu nhiệt độ
+    // Doc 2 byte du lieu nhiet do
     if (i2c_master_recv(client, buf, 2) < 0) {
         printk(KERN_ERR "Failed to read temperature data\n");
         return -EIO;
@@ -155,7 +155,7 @@ static int bmp180_read_raw_pressure(struct i2c_client *client) {
 }
 
 // Tinh B5
-static int B5;  // thêm biến toàn cục
+static int B5;  // them bien toan cuc
 
 static int bmp180_get_B5(int raw_temp) {
     int X1, X2;
@@ -166,22 +166,22 @@ static int bmp180_get_B5(int raw_temp) {
 
     return B5;
 }
-// Tính nhiệt độ thực tế
+// Tinh nhiet do thuc te
 static int bmp180_calculate_temperature(int raw_temp) {
 
     int B5 = bmp180_get_B5(raw_temp);
-    int temperature = (B5 + 8) >> 4;  // Tính T trong đơn vị 0.1°C
+    int temperature = (B5 + 8) >> 4;  // Tinh T trong đon vi 0.1°C
     
     printk(KERN_INFO "Temperature: %d\n", temperature);
-    return temperature;  // Trả về nhiệt độ thực tế
+    return temperature;  // Tra ve nhiet đo thuc te
 }
 
-// Tính áp suất thực tế
+// Tinh ap suat thuc te
 static int bmp180_calculate_pressure(int raw_press, int B5) {
     int B6, X1, X2, X3, B3, B4, B7;
     uint32_t pressure;
     
-    // Tính B6 và các giá trị trung gian
+    // Tinh B6 và cac gia tri trung gian
     B6 = B5 - 4000;
     X1 = (calib_data.B2 * (B6 * B6) >> 12) >> 11;
     X2 = calib_data.AC2 * B6 >> 11;
@@ -195,7 +195,7 @@ static int bmp180_calculate_pressure(int raw_press, int B5) {
 
     B7 = (unsigned int)(raw_press - B3) * 50000;
     
-    // Tính áp suất thực tế
+    // Tinh ap suat thuc te
     if (B7 < 0x80000000) {
         pressure = (B7 * 2) / B4;
     } else {
@@ -206,21 +206,21 @@ static int bmp180_calculate_pressure(int raw_press, int B5) {
     X1 = (X1 * 3038) >> 16;
     X2 = (-7357 * pressure) >> 16;
 
-    // Tính kết quả cuối cùng
+    // Tinh ket qua cuoi cung
     pressure = pressure + ((X1 + X2 + 3791) >> 4);
     
     printk(KERN_INFO "Pressure: %d\n", pressure);
-    return pressure;  // Trả về áp suất thực tế
+    return pressure;  // Tra ve ap suat thuc te
 }
 
-// Đọc nhiệt độ hoàn chỉnh
+// Doc nhiet do hoan chinh
 static int bmp180_read_temperature(struct i2c_client *client) {
     int raw_temp;
-    raw_temp = bmp180_read_raw_temperature(client);  // Đọc nhiệt độ thô
-    return bmp180_calculate_temperature(raw_temp);   // Tính và trả về nhiệt độ thực tế
+    raw_temp = bmp180_read_raw_temperature(client);  // Doc nhiet do tho
+    return bmp180_calculate_temperature(raw_temp);   // Tinh và tra ve nhiet do thuc te
 }
 
-// Đọc áp suất hoàn chỉnh
+// Doc ap suat hoan chinh
 static int bmp180_read_pressure(struct i2c_client *client) {
     int32_t raw_temp = bmp180_read_raw_temperature(client);
     int32_t B5 = bmp180_get_B5(raw_temp);
@@ -231,7 +231,7 @@ static int bmp180_read_pressure(struct i2c_client *client) {
     return bmp180_calculate_pressure(raw_press, B5);
 }
 
-// Tính độ cao từ áp suất
+// Tinh đo cao tu ap suat
 static int bmp180_calculate_altitude(int pressure) {
     int altitude = (44330 * (101325 - pressure)) / 101325;
     printk(KERN_INFO "Altitude: %d meters\n", altitude);
